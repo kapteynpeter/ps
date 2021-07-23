@@ -43,18 +43,16 @@ function Write-Lines ($lines) {
 function Write-Char ($x, $y, $letter, $master_string, $color) {
     $host.UI.RawUI.CursorPosition = @{ x = $x; y = $y }
     if ($color) {
-        Write-Host $letter -ForegroundColor $color
+        Write-Host $letter -ForegroundColor $color -NoNewline
     } elseif ($letter -eq $master_string[$PC]) {
-        Write-Host $letter -ForegroundColor Yellow
+        Write-Host $letter -ForegroundColor Yellow -NoNewline
     } else {
-        Write-Host $letter -ForegroundColor Red
+        Write-Host $letter -ForegroundColor Red -NoNewline
     }
 }
 
 $first_newline = $false
 $words_per_line = 5
-# $master_string = "hello moto nice to meet you time to fart"
-# $master_string
 $PC = 0
 $Y = 0
 
@@ -68,39 +66,50 @@ $master_string = ($line1 -join " ") + "`n"
 
 Write-Lines @($line1, $line2, $line3)
 
-while(1) {
+$StopWatch = New-Object -TypeName System.Diagnostics.Stopwatch 
+$StopWatch.start()
+$timeout = New-TimeSpan -Seconds 5
+
+while($StopWatch.Elapsed -lt $timeout) {
     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     $incoming_letter = $key.character
-    
-    if ((($master_string[$PC] -eq " ") -or ($master_string[$PC] -eq "`n") ) -and ($incoming_letter -ne " ")){
-        Write-Char ($PC - 1) $Y $incoming_letter $master_string
-    } elseif ($incoming_letter -ne " ") {
-        Write-Char $PC $Y $incoming_letter $master_string
-        $PC++
-    } else {
-        while (1) {
-            if ($master_string[$PC] -eq " ") {
-                $PC++
-                break
-            } elseif ($master_string[$PC] -eq "`n") {
-                if (-not $first_newline) {
-                    $PC = 0
-                    $Y++
-                    $first_newline = $true
-                    $master_string = ($line2 -join " ") + "`n"
-                } else {
-                    clear-host
-                    $master_string = ($line3 -join " ") + "`n"
-                    $line1 = $line2
-                    $line2 = $line3
-                    $line3 = Get-RandWords $word_list $words_per_line
-                    Write-Lines @($line1, $line2, $line3)
-                    #keep the coloring of line1 correct
-                }
-                break
+
+    if ($master_string[$PC] -eq "`n") {
+        if ($incoming_letter -ne " ") {
+            Write-Char ($PC - 1) $Y $incoming_letter $master_string
+        } else {
+            if (-not $first_newline) {
+                $PC = 0
+                $Y++
+                $first_newline = $true
+                $master_string = ($line2 -join " ") + "`n"
             } else {
+                clear-host
+                $PC = 0
+                $master_string = ($line3 -join " ") + "`n"
+                $line1 = $line2
+                $line2 = $line3
+                $line3 = Get-RandWords $word_list $words_per_line
+                Write-Lines @($line1, $line2, $line3)
+                #keep the coloring of line1 correct
+            }
+        }
+    } elseif ($master_string[$PC] -eq " ") {
+        if ($incoming_letter -ne " ") {
+            Write-Char ($PC - 1) $Y $incoming_letter $master_string
+        } else {
+            $PC++
+        }
+    } elseif ($master_string[$PC] -ne " ") {
+        if ($incoming_letter -eq " ") {
+            while ($master_string[$PC] -ne " ") {
+                Write-Char $PC $Y $master_string[$PC] $master_string "Red"
                 $PC++
             }
+            $PC++
+        } else {
+            Write-Char $PC $Y $incoming_letter $master_string
+            $PC++
         }
     }
 }
