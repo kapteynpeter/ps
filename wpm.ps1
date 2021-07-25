@@ -8,8 +8,8 @@ $word_list = @("was", "are", "have", "had", "were", "can", "said", "use", "will"
                "walk", "began", "grow", "took", "carry", "hear", "stop", "miss", "eat", "watch", "let", "cut", "talk", "being", "leave", "word", "time", 
                "number", "way", "people", "water", "day", "part", "sound", "work", "place", "year", "back", "thing", "name", "sentence", "man", "line", 
                "boy", "farm", "end", "men", "land", "home", "hand", "picture", "air", "animal", "house", "page", "letter", "point", "mother", "answer", 
-               "America", "world", "food", "country", "plant", "school", "father", "tree", "city", "earth", "eye", "head", "story", "example", "life", 
-               "paper", "group", "children", "side", "feet", "car", "mile", "night", "sea", "river", "state", "book", "idea", "face", "Indian", "girl", 
+               "america", "world", "food", "country", "plant", "school", "father", "tree", "city", "earth", "eye", "head", "story", "example", "life", 
+               "paper", "group", "children", "side", "feet", "car", "mile", "night", "sea", "river", "state", "book", "idea", "face", "indian", "girl", 
                "mountain", "list", "song", "family", "one", "all", "each", "other", "many", "some", "two", "more", "long", "new", "little", "most", 
                "good", "great", "right", "mean", "old", "any", "same", "three", "small", "another", "large", "big", "even", "such", "different", "kind", 
                "still", "high", "every", "own", "light", "left", "few", "next", "hard", "both", "important", "white", "four", "second", "enough", "above", 
@@ -68,7 +68,7 @@ Write-Lines @($line1, $line2, $line3)
 
 $StopWatch = New-Object -TypeName System.Diagnostics.Stopwatch 
 $StopWatch.start()
-$timeout = New-TimeSpan -Seconds 5
+$timeout = New-TimeSpan -Seconds 100
 
 while($StopWatch.Elapsed -lt $timeout) {
     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -102,14 +102,43 @@ while($StopWatch.Elapsed -lt $timeout) {
         }
     } elseif ($master_string[$PC] -ne " ") {
         if ($incoming_letter -eq " ") {
-            while ($master_string[$PC] -ne " ") {
-                Write-Char $PC $Y $master_string[$PC] $master_string "Red"
-                $PC++
+            while (1) {
+                if ($master_string[$PC] -eq " ") {
+                    $PC++
+                    break
+                } elseif ($master_string[$PC] -eq "`n") {
+                    if (-not $first_newline) {
+                        $PC = 0
+                        $Y++
+                        $first_newline = $true
+                        $master_string = ($line2 -join " ") + "`n"
+                        break
+                    } else {
+                        clear-host
+                        $PC = 0
+                        $master_string = ($line3 -join " ") + "`n"
+                        $line1 = $line2
+                        $line2 = $line3
+                        $line3 = Get-RandWords $word_list $words_per_line
+                        Write-Lines @($line1, $line2, $line3)
+                        break
+                        #keep the coloring of line1 correct
+                    }
+                } else {
+                    Write-Char $PC $Y $master_string[$PC] $master_string "Red"
+                    $PC++
+                }
             }
-            $PC++
         } else {
             Write-Char $PC $Y $incoming_letter $master_string
             $PC++
         }
     }
 }
+
+<# 
+    TODO:
+    1. make the cursor be at the right spot
+    2. support back spaces
+    3. calculate and display WPM at the end
+#>
