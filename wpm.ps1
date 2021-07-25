@@ -51,10 +51,11 @@ function Write-Char ($x, $y, $letter, $master_string, $color) {
     }
 }
 
-$first_newline = $false
-$words_per_line = 5
+$words_per_line = 15
 $PC = 0
 $Y = 0
+$num_right_words = 0
+$num_wrong_words = 0
 
 Clear-Host
 
@@ -68,7 +69,7 @@ Write-Lines @($line1, $line2, $line3)
 
 $StopWatch = New-Object -TypeName System.Diagnostics.Stopwatch 
 $StopWatch.start()
-$timeout = New-TimeSpan -Seconds 100
+$timeout = New-TimeSpan -Seconds 15
 
 while($StopWatch.Elapsed -lt $timeout) {
     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -77,58 +78,55 @@ while($StopWatch.Elapsed -lt $timeout) {
     if ($master_string[$PC] -eq "`n") {
         if ($incoming_letter -ne " ") {
             Write-Char ($PC - 1) $Y $incoming_letter $master_string
+            $num_wrong_words++
         } else {
-            if (-not $first_newline) {
-                $PC = 0
+            $PC = 0
+            if ($Y -eq 0) {
                 $Y++
-                $first_newline = $true
-                $master_string = ($line2 -join " ") + "`n"
             } else {
                 clear-host
-                $PC = 0
-                $master_string = ($line3 -join " ") + "`n"
                 $line1 = $line2
                 $line2 = $line3
                 $line3 = Get-RandWords $word_list $words_per_line
                 Write-Lines @($line1, $line2, $line3)
-                #keep the coloring of line1 correct
             }
+            $master_string = ($line2 -join " ") + "`n"
+            $num_right_words++
         }
     } elseif ($master_string[$PC] -eq " ") {
         if ($incoming_letter -ne " ") {
             Write-Char ($PC - 1) $Y $incoming_letter $master_string
+            $num_wrong_words++
         } else {
+            $num_right_words++
             $PC++
         }
-    } elseif ($master_string[$PC] -ne " ") {
+
+    } elseif (($master_string[$PC] -ge 10) -or ($master_string[$PC] -le 122)) {
         if ($incoming_letter -eq " ") {
             while (1) {
                 if ($master_string[$PC] -eq " ") {
                     $PC++
                     break
                 } elseif ($master_string[$PC] -eq "`n") {
-                    if (-not $first_newline) {
-                        $PC = 0
+                    $PC = 0
+                    if ($Y -eq 0) {
                         $Y++
-                        $first_newline = $true
-                        $master_string = ($line2 -join " ") + "`n"
-                        break
                     } else {
                         clear-host
-                        $PC = 0
-                        $master_string = ($line3 -join " ") + "`n"
                         $line1 = $line2
                         $line2 = $line3
                         $line3 = Get-RandWords $word_list $words_per_line
                         Write-Lines @($line1, $line2, $line3)
-                        break
-                        #keep the coloring of line1 correct
                     }
+                    $master_string = ($line2 -join " ") + "`n"
+                    break
                 } else {
                     Write-Char $PC $Y $master_string[$PC] $master_string "Red"
                     $PC++
                 }
             }
+            $num_wrong_words++
         } else {
             Write-Char $PC $Y $incoming_letter $master_string
             $PC++
@@ -136,9 +134,20 @@ while($StopWatch.Elapsed -lt $timeout) {
     }
 }
 
+write-host "`n`n"
+
+$wpm = $num_right_words / $timeout.TotalMinutes
+"your words per minute is:  {0}" -f $wpm
+
+#need a total number of words
+#need a total number of wrong words
+
 <# 
     TODO:
-    1. make the cursor be at the right spot
-    2. support back spaces
-    3. calculate and display WPM at the end
+    - make the cursor be at the right spot
+    - support back spaces
+    - calculate and display WPM at the end
+    - refactor the code that does the line swaps/ the line breaks
+    - keep the colors the same when you go up a line
+    - add feature to only start recording when the user starts typing (and add some feedback to indicate that)
 #>
